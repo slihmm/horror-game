@@ -200,8 +200,32 @@ local Presets: { [string]: Preset } = {
 	}),
 }
 
+-- Zones whose look changes continuously with depth: the rope descent (light
+-- and warmth drain away the deeper you go) and the final ascent (darkness
+-- lifts as you climb toward morning). Values blend from `Shallow` at the
+-- top of the depth range to `Deep` at the bottom.
+export type DepthBlend = {
+	Depth: NumberRange,
+	Shallow: { Ambient: Color3, Exposure: number },
+	Deep: { Ambient: Color3, Exposure: number },
+}
+
+local DepthBlends: { [string]: DepthBlend } = {
+	Shaft = {
+		Depth = NumberRange.new(45, 300),
+		Shallow = { Ambient = Color3.fromRGB(10, 10, 11), Exposure = 0.25 },
+		Deep = { Ambient = Color3.fromRGB(1, 1, 1), Exposure = -0.05 },
+	},
+	Escape = {
+		Depth = NumberRange.new(0, 560),
+		Shallow = { Ambient = Color3.fromRGB(34, 33, 34), Exposure = 1 },
+		Deep = { Ambient = Color3.fromRGB(4, 4, 5), Exposure = 0.1 },
+	},
+}
+
 return {
 	Presets = Presets,
+	DepthBlends = DepthBlends,
 	-- Seconds to blend between zone presets.
 	TransitionTime = 4,
 	-- Player brightness setting maps to ExposureCompensation in this range.

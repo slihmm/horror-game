@@ -56,6 +56,7 @@ type State = {
 	_silencedUntil: number,
 	_muffle: { EqualizerSoundEffect },
 	_folder: Folder?,
+	_zoneChangedAt: number,
 }
 export type AudioController = typeof(setmetatable({} :: State, AudioController))
 
@@ -268,6 +269,7 @@ end
 
 function AudioController._setZone(self: AudioController, zone: string)
 	self._zone = zone
+	self._zoneChangedAt = os.clock()
 	local zoneDef = ZoneConfig.Get(zone)
 	SoundService.AmbientReverb = zoneDef.Reverb
 	local ambience = AudioConfig.Zones[zone]
@@ -311,8 +313,26 @@ function AudioController._setZone(self: AudioController, zone: string)
 	self._nextAmbient = os.clock() + self._rng:NextNumber(3, 8)
 end
 
+function AudioController._updateDepthBeds(self: AudioController, depth: number)
+	local blend = AudioConfig.DepthBeds[self._zone]
+	-- Let the zone crossfade finish before taking over the bed volumes.
+	if not blend or os.clock() - self._zoneChangedAt < AudioConfig.BedFade then
+		return
+	end
+	local t = math.clamp((depth - blend.Depth.Min) / (blend.Depth.Max - blend.Depth.Min), 0, 1)
+	for name, range in blend.Beds do
+		local sound = self._beds[name]
+		if sound then
+			local resolved = self:Resolve(name)
+			local target = (range.Shallow + (range.Deep - range.Shallow) * t) * (if resolved then resolved.Volume else 1)
+			sound.Volume += (target - sound.Volume) * 0.05
+		end
+	end
+end
+
 function AudioController._updateMuffle(self: AudioController)
 	local depth = (LocalPlayer:GetAttribute(Constants.Attributes.Depth) :: number?) or 0
+	self:_updateDepthBeds(depth)
 	local cfg = AudioConfig.DepthMuffle
 	local t = math.clamp((depth - cfg.StartDepth) / (cfg.FullDepth - cfg.StartDepth), 0, 1)
 	for _, eq in self._muffle do
@@ -431,6 +451,7 @@ local instance: AudioController = setmetatable({
 	_silencedUntil = 0,
 	_muffle = {},
 	_folder = nil,
+	_zoneChangedAt = 0,
 } :: State, AudioController)
 
 return instance

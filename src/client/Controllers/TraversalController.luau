@@ -46,6 +46,7 @@ type Active = {
 	NextSound: number,
 	Facing: Vector3,
 	Finished: boolean,
+	Started: number,
 }
 
 local TraversalController = {}
@@ -197,6 +198,7 @@ function TraversalController._begin(self: TraversalController, token: number, da
 		NextSound = 0,
 		Facing = facing,
 		Finished = false,
+		Started = os.clock(),
 	}
 
 	if kind == "Squeeze" then
@@ -283,6 +285,13 @@ function TraversalController._update(self: TraversalController, dt: number)
 		Net.Event("Traversal"):FireServer("Stuck", active.Token)
 	end
 
+	-- Stepping off into the shaft: the view sinks into the drop for a few
+	-- seconds, then eases back so the player keeps control of the camera.
+	if active.Kind == "Rope" and active.Path[1].Y > active.Path[#active.Path].Y then
+		local elapsed = os.clock() - active.Started
+		CameraController:SetLookBias(CameraConfig.Rope.LookDownBias * math.clamp(1 - elapsed / 6, 0, 1) * math.clamp(elapsed / 1.5, 0, 1))
+	end
+
 	local position, tangent = sample(active.Path, active.Cumulative, active.Distance)
 	local sway = Vector3.zero
 	if active.Kind ~= "Squeeze" then
@@ -349,6 +358,7 @@ function TraversalController._finish(self: TraversalController, backedOut: boole
 	CameraController:SetFieldOfViewOverride(nil)
 	CameraController:SetHeightOverride(0)
 	CameraController:SetExtraBreath(0)
+	CameraController:SetLookBias(0)
 	UIController:SetVignette(0.35, 1.5)
 	self.Active = nil
 end

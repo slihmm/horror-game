@@ -57,7 +57,11 @@ local Zones: { [string]: ZoneAmbience } = {
 		},
 	},
 	Shaft = {
-		Beds = { { Sound = "Bed_CaveAir", Volume = 0.35 } },
+		Beds = {
+			{ Sound = "Bed_CaveAir", Volume = 0.35 },
+			{ Sound = "Bed_Water", Volume = 0 },
+			{ Sound = "Bed_SurfaceWind", Volume = 0.1 },
+		},
 		Gap = NumberRange.new(6, 16),
 		Pool = {
 			entry("PebbleSkitter", 6, 8, 30, 6, { Above = true }),
@@ -138,8 +142,29 @@ local Zones: { [string]: ZoneAmbience } = {
 	},
 }
 
+-- Bed volumes that follow depth inside a zone (see LightingConfig.DepthBlends
+-- for the matching visual change). Volume = lerp(Shallow, Deep, depth t).
+local DepthBeds: { [string]: { Depth: NumberRange, Beds: { [string]: { Shallow: number, Deep: number } } } } = {
+	Shaft = {
+		Depth = NumberRange.new(45, 300),
+		Beds = {
+			Bed_SurfaceWind = { Shallow = 0.18, Deep = 0 },
+			Bed_CaveAir = { Shallow = 0.4, Deep = 0.2 },
+			Bed_Water = { Shallow = 0, Deep = 0.38 },
+		},
+	},
+	Escape = {
+		Depth = NumberRange.new(0, 560),
+		Beds = {
+			Bed_SurfaceWind = { Shallow = 0.6, Deep = 0.03 },
+			Bed_CaveAir = { Shallow = 0.08, Deep = 0.35 },
+		},
+	},
+}
+
 return {
 	Zones = Zones,
+	DepthBeds = DepthBeds,
 	Groups = {
 		Master = 1,
 		Ambient = 0.9,

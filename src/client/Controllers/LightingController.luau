@@ -40,6 +40,7 @@ type State = {
 	_rng: Random,
 	_time: number,
 	_terrainParams: RaycastParams,
+	_zoneChangedAt: number,
 }
 export type LightingController = typeof(setmetatable({} :: State, LightingController))
 
@@ -126,6 +127,7 @@ end
 
 function LightingController._setZone(self: LightingController, zone: string, time: number)
 	self._zone = zone
+	self._zoneChangedAt = os.clock()
 	self:Apply(self:_presetFor(zone), time)
 end
 
@@ -192,6 +194,24 @@ function LightingController._tick(self: LightingController, dt: number)
 	end
 	self:_tickDrips(camera.CFrame.Position)
 	self:_tickFlicker(camera.CFrame.Position)
+	self:_tickDepthBlend(dt)
+end
+
+-- Continuous change with depth in the shaft and on the climb out.
+function LightingController._tickDepthBlend(self: LightingController, dt: number)
+	local blend = LightingConfig.DepthBlends[self._zone]
+	if not blend or self._override or os.clock() - self._zoneChangedAt < LightingConfig.TransitionTime then
+		return
+	end
+	local depth = (LocalPlayer:GetAttribute(Constants.Attributes.Depth) :: number?) or 0
+	local t = math.clamp((depth - blend.Depth.Min) / (blend.Depth.Max - blend.Depth.Min), 0, 1)
+	local range = LightingConfig.BrightnessSettingRange
+	local setting = MathUtil.lerp(range.Min, range.Max, self._brightnessSetting) - MathUtil.lerp(range.Min, range.Max, 0.5)
+	local ambient = blend.Shallow.Ambient:Lerp(blend.Deep.Ambient, t)
+	local exposure = MathUtil.lerp(blend.Shallow.Exposure, blend.Deep.Exposure, t) + setting
+	local k = MathUtil.damp(2, dt)
+	Lighting.Ambient = Lighting.Ambient:Lerp(ambient, k)
+	Lighting.ExposureCompensation = MathUtil.lerp(Lighting.ExposureCompensation, exposure, k)
 end
 
 -- Water dripping from the ceiling near the player.
@@ -277,6 +297,7 @@ local instance: LightingController = setmetatable({
 	_rng = Random.new(),
 	_time = 0,
 	_terrainParams = RaycastParams.new(),
+	_zoneChangedAt = 0,
 } :: State, LightingController)
 
 return instance
