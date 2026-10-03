@@ -126,7 +126,7 @@ local function tunnelToChamber(
 	local tunnelEnd = origin.Floor + dir * length + UP * length * slope
 	local roomCenter = tunnelEnd + dir * roomRadius * 0.6
 	local group = Primitives.NewGroup(ctx)
-	local opts: Primitives.TunnelOptions = { Radius = tunnelRadius, Zone = br.Zone, Group = group }
+	local opts: Primitives.TunnelOptions = { Radius = tunnelRadius, Zone = br.Zone, Group = group, EndRoomRadius = roomRadius }
 	local tunnelSamples = Primitives.TunnelCompute(ctx, origin.Floor, roomCenter, opts)
 	local chamberOpts: Primitives.ChamberOptions = { Zone = br.Zone, Group = group, Radius = roomRadius, Height = roomHeight }
 	local roomSamples = Primitives.ChamberCompute(ctx, roomCenter, chamberOpts)

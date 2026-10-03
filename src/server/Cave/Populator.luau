@@ -630,6 +630,23 @@ local function ensureLoreSlots(ctx: DressContext)
 		-- One spare: hidden entries fall back to ordinary slots when no
 		-- hidden room in their zone took lore this run.
 		local deficit = math.ceil(amount) + 1 - (have[zone] or 0)
+		if not options then
+			-- Zones without tunnels of their own (the camp): use their rooms.
+			for _, anchor in ctx.Plan.Anchors do
+				if anchor.Zone == zone and deficit > 0 then
+					for _ = 1, deficit * 3 do
+						local p = Dress.RandomFloor(ctx, anchor.Position, anchor.Radius * 0.8, anchor.Radius * 0.3)
+						if p then
+							Dress.AddLoreSlot(ctx, p, zone, nil, false)
+							deficit -= 1
+							if deficit <= 0 then
+								break
+							end
+						end
+					end
+				end
+			end
+		end
 		local attempts = 0
 		while options and deficit > 0 and attempts < 40 do
 			attempts += 1

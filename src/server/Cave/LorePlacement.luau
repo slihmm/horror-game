@@ -70,13 +70,15 @@ function LorePlacement.Assign(entries: { LoreEntry }, slots: { LoreSlot }, rng: 
 	for _, entry in table.clone(remaining) do
 		if entry.Hidden then
 			local zones = entry.Zones or {}
+			-- Stay in the entry's own zones first (a hidden room there, else a
+			-- quiet spot there); only then borrow another zone's hidden room,
+			-- so no zone's own entries are starved of slots.
 			local slot = firstSlot(function(s)
 				return s.Hidden and table.find(zones, s.Zone) ~= nil
 			end) or firstSlot(function(s)
-				return s.Hidden
-			end) or firstSlot(function(s)
-				-- No hidden room took lore this run: tuck it somewhere quiet.
 				return s.Anchor == nil and table.find(zones, s.Zone) ~= nil
+			end) or firstSlot(function(s)
+				return s.Hidden
 			end)
 			if slot then
 				take(entry, slot)

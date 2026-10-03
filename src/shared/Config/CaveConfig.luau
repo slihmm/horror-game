@@ -26,8 +26,10 @@ return {
 		MaxWander = 40,
 		VerticalWander = 0.25,
 		ControlSpacing = 42,
-		-- Nav/tracking nodes are placed every N studs along tunnels.
-		NodeSpacing = 16,
+		-- Nav/tracking nodes are placed every N studs along tunnels. Close
+		-- enough that straight lines between nodes stay inside curving
+		-- tunnels (the monster walks those lines).
+		NodeSpacing = 8,
 		RadiusNoiseScale = 0.045,
 	},
 

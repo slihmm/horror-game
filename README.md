@@ -67,6 +67,11 @@ the pure logic:
   surface builder, populator and room dressers. All 31 lore entries must
   land (story beats in their rooms, your journal in the newest camp), lore
   and loot must rest on floors, and navigation nodes must be in open air.
+- **traversal**: can the game be completed? Walks the story route from camp
+  to exit through the emulated terrain (floor, headroom, steps no higher than
+  a jump), checks every rope / climb / squeeze path is clear of rock, that
+  the ring seal blocks then opens, and that the recursion corridor's modules
+  are identical.
 - **monster**: simulated encounters. A noisy, lit player is tracked, chased
   and attacked. A silent, dark, hidden player is not. A shy early monster
   never chases.

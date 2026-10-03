@@ -96,6 +96,9 @@ export type Context = {
 	NoiseSeed: number,
 	-- Tunnels that may grow branches: { samples, nodes, zone, group }.
 	Branchable: { { Samples: { Sample }, Nodes: { Node }, Zone: string, Group: number } },
+	-- Committed chambers (floor center + horizontal radius). Tunnels that
+	-- start or end at a chamber center run level to its wall first.
+	Chambers: { { Center: Vector3, Radius: number } },
 	-- Diagnostics: attempts/successes per branch type.
 	BranchStats: { [string]: { Attempts: number, Placed: number } },
 }
@@ -116,6 +119,9 @@ export type TunnelOptions = {
 	FloorMaterial: Enum.Material?,
 	WallMaterial: Enum.Material?,
 	Straight: boolean?,
+	-- Radius of a chamber at either end that isn't committed yet.
+	StartRoomRadius: number?,
+	EndRoomRadius: number?,
 }
 
 local UP = Vector3.yAxis
@@ -139,6 +145,7 @@ function Primitives.NewContext(seed: number): Context
 		NextGroup = 1,
 		NoiseSeed = (seed % 10007) / 97.3,
 		Branchable = {},
+		Chambers = {},
 		BranchStats = {},
 	}
 end
@@ -234,20 +241,62 @@ function Primitives.TunnelCompute(ctx: Context, a: Vector3, b: Vector3, opts: Tu
 	side = side.Unit
 
 	local startR = MathUtil.lerp(radius.Min, radius.Max, noise01(ctx, 0, salt))
-	local controls = { a + UP * FF * startR }
-	if not opts.Straight then
-		local wander = math.min(cfg.MaxWander, dist * (opts.Wander or cfg.Wander))
-		local count = math.max(0, math.floor(dist / cfg.ControlSpacing))
-		for i = 1, count do
-			local t = i / (count + 1)
-			local envelope = math.sin(math.pi * t)
-			local lateral = side * rng:NextNumber(-1, 1) * wander * envelope
-			local segment = dist / (count + 1)
-			local vertical = UP * rng:NextNumber(-1, 1) * math.min(segment * cfg.VerticalWander, 8) * envelope
-			table.insert(controls, a:Lerp(b, t) + lateral + vertical + UP * FF * startR)
+	local lift = UP * FF * startR
+
+	-- Run level out of (and into) chambers: a passage meets a room at floor
+	-- height at its wall, rather than climbing or diving from its center
+	-- (which would dig a trench through the room's floor).
+	local function roomRadiusAt(point: Vector3, explicit: number?): number?
+		if explicit then
+			return explicit
+		end
+		for _, room in ctx.Chambers do
+			local d = point - room.Center
+			if Vector3.new(d.X, 0, d.Z).Magnitude < 2 and math.abs(d.Y) < 2 then
+				return room.Radius
+			end
+		end
+		return nil
+	end
+	local innerA, innerB = a, b
+	local flat = Vector3.new(delta.X, 0, delta.Z)
+	if flat.Magnitude > 1 then
+		local flatDir = flat.Unit
+		local startRoom = roomRadiusAt(a, opts.StartRoomRadius)
+		local endRoom = roomRadiusAt(b, opts.EndRoomRadius)
+		local available = flat.Magnitude
+		-- Long rooms on short tunnels keep the direct line.
+		if startRoom and startRoom * 0.85 < available * 0.6 then
+			innerA = a + flatDir * startRoom * 0.85
+		end
+		if endRoom and endRoom * 0.85 < available * 0.6 and (innerA - b).Magnitude > endRoom then
+			innerB = b - flatDir * endRoom * 0.85
 		end
 	end
-	table.insert(controls, b + UP * FF * startR)
+
+	local controls = { a + lift }
+	if innerA ~= a then
+		table.insert(controls, innerA + lift)
+	end
+	if not opts.Straight then
+		-- Wander only between the room walls.
+		local span = innerB - innerA
+		local spanDist = span.Magnitude
+		local wander = math.min(cfg.MaxWander, spanDist * (opts.Wander or cfg.Wander))
+		local count = math.max(0, math.floor(spanDist / cfg.ControlSpacing))
+		for k = 1, count do
+			local t = k / (count + 1)
+			local envelope = math.sin(math.pi * t)
+			local lateral = side * rng:NextNumber(-1, 1) * wander * envelope
+			local segment = spanDist / (count + 1)
+			local vertical = UP * rng:NextNumber(-1, 1) * math.min(segment * cfg.VerticalWander, 8) * envelope
+			table.insert(controls, innerA:Lerp(innerB, t) + lateral + vertical + lift)
+		end
+	end
+	if innerB ~= b then
+		table.insert(controls, innerB + lift)
+	end
+	table.insert(controls, b + lift)
 
 	local centers = Spline.sample(controls, CaveConfig.CarveSpacing)
 	local samples: { Sample } = {}
@@ -434,6 +483,7 @@ function Primitives.ChamberCommit(ctx: Context, floorCenter: Vector3, samples: {
 		floorMaterial
 	)
 	Primitives.RegisterSamples(ctx, samples, opts.Group)
+	table.insert(ctx.Chambers, { Center = floorCenter, Radius = opts.Radius })
 
 	local result: ChamberResult = { Samples = samples, Center = nil, Ring = {}, FloorY = floorCenter.Y }
 	if opts.NoNodes then
@@ -583,7 +633,8 @@ function Primitives.Vertical(ctx: Context, bottom: Anchor, top: Anchor, kind: st
 	end
 
 	-- Connector from the rim to the top anchor.
-	local rimNode = ctx.Graph:AddNode(rim, 6, top.Zone, top.Group)
+	-- The node stands back from the lip, on solid floor.
+	local rimNode = ctx.Graph:AddNode(Vector3.new(axis.X, topY, axis.Z) + dir * (radius + 3), 6, top.Zone, top.Group)
 	local topNode = top.Node :: Node
 	Primitives.Tunnel(ctx, rim, top.Position, {
 		Radius = if isRope then NumberRange.new(6, 7) else NumberRange.new(5.5, 6.5),
@@ -613,6 +664,19 @@ function Primitives.Vertical(ctx: Context, bottom: Anchor, top: Anchor, kind: st
 			topFloor + dir * (radius - 4) + UP * 2.5,
 			topFloor + dir * (radius + 3) + UP * 3,
 		}
+	end
+	-- Cut a channel for the line through the lip of floor at the top, so
+	-- the player passes the ledge instead of through it.
+	local lineTop, lineBottom = path[2], path[3]
+	if lineTop.Y < lineBottom.Y then
+		lineTop, lineBottom = lineBottom, lineTop
+	end
+	local channelY = lineBottom.Y
+	while channelY <= lineTop.Y + 3 do
+		if channelY > topY - 12 then
+			Primitives.Ball(ctx.Ops.Late, Vector3.new(lineTop.X, channelY, lineTop.Z), 2.8, Enum.Material.Air)
+		end
+		channelY += 2
 	end
 	local bottomNode = bottom.Node :: Node
 	local traversal: Traversal = {

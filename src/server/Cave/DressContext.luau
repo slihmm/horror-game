@@ -117,12 +117,27 @@ end
 
 -- Raycast helpers ------------------------------------------------------------
 
+-- True when a point is inside terrain (a tiny ray hits immediately).
+function Dress.InRock(ctx: DressContext, point: Vector3): boolean
+	local hit = Workspace:Raycast(point, Vector3.yAxis * 0.05, ctx.Params)
+	return hit ~= nil and hit.Distance < 0.01
+end
+
+-- Floor below a point. The ray must start in open space: a ray that starts
+-- inside rock (next to a wall, in a narrow sloping passage) finds nothing
+-- meaningful, so lower starts are tried before giving up.
 function Dress.FloorAt(ctx: DressContext, position: Vector3, searchUp: number?, searchDown: number?): (Vector3?, Vector3?, Enum.Material?)
 	local up = searchUp or 4
 	local down = searchDown or 30
-	local result = Workspace:Raycast(position + Vector3.yAxis * up, Vector3.yAxis * -(up + down), ctx.Params)
-	if result then
-		return result.Position, result.Normal, result.Material
+	for _, height in { up, up * 0.5, 0.5 } do
+		local origin = position + Vector3.yAxis * height
+		if not Dress.InRock(ctx, origin) then
+			local result = Workspace:Raycast(origin, Vector3.yAxis * -(height + down), ctx.Params)
+			if result then
+				return result.Position, result.Normal, result.Material
+			end
+			return nil, nil, nil
+		end
 	end
 	return nil, nil, nil
 end
