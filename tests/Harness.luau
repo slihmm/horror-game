@@ -86,6 +86,7 @@ function Harness.load(placePath)
 
 	return {
 		Game = game,
+		Random = RandomClass,
 		Require = requireModule,
 		Find = function(path)
 			local current = game

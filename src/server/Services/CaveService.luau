@@ -275,6 +275,26 @@ end
 
 -- World changes ---------------------------------------------------------------
 
+-- True inside the recursion corridor, where clients loop the player
+-- backwards locally (the server must not treat that as cheating).
+function CaveService.InRecursion(self: CaveService, position: Vector3): boolean
+	local plan = self.Plan
+	if not plan then
+		return false
+	end
+	for _, f in plan.Features do
+		if f.Kind == "Recursion" then
+			local origin = f.Origin :: Vector3
+			local axis = f.Axis :: Vector3
+			local side = f.Side :: Vector3
+			local rel = position - origin
+			local along = rel:Dot(axis)
+			return along > -6 and along < f.Modules * f.ModuleLength + 6 and math.abs(rel:Dot(side)) < f.Radius + 6 and math.abs(rel.Y) < 20
+		end
+	end
+	return false
+end
+
 function CaveService.IsRingOpen(self: CaveService): boolean
 	return self._ringOpen
 end

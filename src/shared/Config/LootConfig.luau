@@ -19,7 +19,7 @@ export type ItemDef = {
 	Shape: string,
 }
 
-local Rarities = {
+local Rarities: { [string]: { Weight: number, Color: Color3 } } = {
 	Common = { Weight = 60, Color = Color3.fromRGB(190, 186, 176) },
 	Uncommon = { Weight = 26, Color = Color3.fromRGB(150, 176, 150) },
 	Rare = { Weight = 10, Color = Color3.fromRGB(140, 160, 200) },

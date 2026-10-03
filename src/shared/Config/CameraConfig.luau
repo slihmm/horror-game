@@ -43,7 +43,7 @@ return {
 	-- Narrow squeezes and crawlspaces.
 	Squeeze = {
 		FieldOfView = 58,
-		HeightOffset = -2.4,
+		HeightOffset = -1.2,
 		BreathAmplitude = 0.05,
 	},
 

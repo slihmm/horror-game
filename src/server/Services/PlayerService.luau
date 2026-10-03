@@ -330,6 +330,7 @@ function PlayerService._tick(self: PlayerService, dt: number)
 			local exempt = traversing
 				or humanoid:GetState() == Enum.HumanoidStateType.Freefall
 				or character:GetAttribute("Teleporting") == true
+				or CaveService:InRecursion(root.Position)
 			if not exempt and flatMoved > allowed then
 				state.Violations += 1
 				if state.Violations >= check.ViolationsBeforeCorrection then

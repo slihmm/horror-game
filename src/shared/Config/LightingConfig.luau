@@ -81,6 +81,33 @@ local function cave(overrides: { [string]: any }): Preset
 end
 
 local Presets: { [string]: Preset } = {
+	-- Used by the ending: the first morning after the night underground.
+	Dawn = {
+		Ambient = Color3.fromRGB(96, 92, 88),
+		OutdoorAmbient = Color3.fromRGB(128, 122, 118),
+		Brightness = 2.2,
+		ClockTime = 7.1,
+		ExposureCompensation = 0.25,
+		EnvironmentDiffuseScale = 0.8,
+		EnvironmentSpecularScale = 0.6,
+		Atmosphere = {
+			Density = 0.3,
+			Offset = 0.2,
+			Color = Color3.fromRGB(214, 200, 186),
+			Decay = Color3.fromRGB(150, 130, 120),
+			Glare = 0.6,
+			Haze = 1.4,
+		},
+		ColorCorrection = {
+			Brightness = 0.03,
+			Contrast = 0.04,
+			Saturation = -0.05,
+			TintColor = Color3.fromRGB(255, 246, 236),
+		},
+		Bloom = { Intensity = 0.8, Size = 30, Threshold = 0.95 },
+		Dust = 0,
+		Drips = 0,
+	},
 	Surface = {
 		Ambient = Color3.fromRGB(70, 74, 82),
 		OutdoorAmbient = Color3.fromRGB(96, 100, 110),
@@ -107,9 +134,12 @@ local Presets: { [string]: Preset } = {
 		Dust = 0,
 		Drips = 0,
 	},
-	-- Natural light still leaks in from above.
+	-- Natural light still leaks in from above: the sun is up, so daylight
+	-- falls through the cracks in the ceiling and pools on the floor.
 	UpperCave = cave({
 		Ambient = Color3.fromRGB(9, 9, 10),
+		Brightness = 1.4,
+		ClockTime = 13.5,
 		Atmosphere = { Density = 0.36, Color = Color3.fromRGB(22, 22, 24), Haze = 1.6 },
 		ColorCorrection = { Saturation = -0.18 },
 		Dust = 0.9,
@@ -160,8 +190,11 @@ local Presets: { [string]: Preset } = {
 		Dust = 1.2,
 		Drips = 0.1,
 	}),
+	-- The way out: morning light reaches in from the exit.
 	Escape = cave({
 		Ambient = Color3.fromRGB(4, 4, 5),
+		Brightness = 0.8,
+		ClockTime = 7.2,
 		Atmosphere = { Density = 0.4, Color = Color3.fromRGB(14, 14, 16) },
 		Dust = 0.7,
 	}),

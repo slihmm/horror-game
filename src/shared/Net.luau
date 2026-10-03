@@ -18,6 +18,7 @@ local DEFINITIONS: { [string]: "RemoteEvent" | "UnreliableRemoteEvent" } = {
 	CinematicFinished = "RemoteEvent", -- (cinematicId: string)
 	-- server -> client
 	HorrorEvent = "RemoteEvent", -- (eventName: string, params: table)
+	WorldEffect = "RemoteEvent", -- (kind: string, position: Vector3, params: table)
 	LoreReveal = "RemoteEvent", -- (loreId: string, firstTime: boolean)
 	Notify = "RemoteEvent", -- (kind: string, text: string)
 	Cinematic = "RemoteEvent", -- (cinematicId: string, params: table)

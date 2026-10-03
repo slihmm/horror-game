@@ -15,6 +15,7 @@ local HeadlampConfig = require(Shared.Config.HeadlampConfig)
 local PlayerConfig = require(Shared.Config.PlayerConfig)
 local ZoneConfig = require(Shared.Config.ZoneConfig)
 local RateLimiter = require(Shared.Utility.RateLimiter)
+local HeadlampMath = require(Shared.HeadlampMath)
 
 local Services = ServerScriptService.Server.Services
 local PlayerService = require(Services.PlayerService)
@@ -33,13 +34,14 @@ export type HeadlampService = typeof(setmetatable({} :: State, HeadlampService))
 
 local pitchLimiter = RateLimiter.new(12, HeadlampConfig.Remote.PitchSendRate * 1.5)
 
-local function tintColor(player: Player): Color3
+-- The tint a player may use: their chosen lens, if they actually own it.
+local function tintName(player: Player): string
 	local profile = DataService:GetProfile(player)
-	local tint = profile and profile.Settings.HeadlampTint or "Default"
-	if tint ~= "Default" and profile and not profile.Cosmetics[tint] then
-		tint = "Default"
+	local tint = if profile then profile.Settings.HeadlampTint else "Default"
+	if type(tint) ~= "string" or (tint ~= "Default" and not (profile and profile.Cosmetics[tint .. "Lens"])) then
+		return "Default"
 	end
-	return HeadlampConfig.Tints[tint] or HeadlampConfig.Color
+	return tint
 end
 
 function HeadlampService.Init(self: HeadlampService)
@@ -115,7 +117,7 @@ function HeadlampService._attach(self: HeadlampService, player: Player, characte
 	light.Range = remote.Range
 	light.Angle = remote.Angle
 	light.Shadows = remote.Shadows
-	light.Color = tintColor(player)
+	light.Color = HeadlampMath.TintColor(tintName(player))
 	light.Parent = attachment
 	light:AddTag(Constants.Tags.Headlamp)
 	-- Keep the lamp state across deaths: a new life does not get a new battery.
@@ -130,26 +132,17 @@ function HeadlampService._attach(self: HeadlampService, player: Player, characte
 	self:_refresh(player, lamp)
 end
 
--- Brightness multiplier for a given battery level (also used by clients).
-function HeadlampService.BatteryScale(battery: number): number
-	local cfg = HeadlampConfig.Battery
-	if battery <= 0 then
-		return 0
-	end
-	if battery >= cfg.LowThreshold then
-		return 1
-	end
-	local t = battery / cfg.LowThreshold
-	return cfg.EmptyBrightness + (1 - cfg.EmptyBrightness) * t
-end
-
 function HeadlampService._refresh(self: HeadlampService, player: Player, lamp: { Attachment: Attachment, Light: SpotLight })
 	local on = player:GetAttribute(Constants.Attributes.HeadlampOn) == true
 	local battery = (player:GetAttribute(Constants.Attributes.Battery) :: number?) or 0
-	local scale = HeadlampService.BatteryScale(battery)
+	local scale = HeadlampMath.BatteryScale(battery)
+	local tint = tintName(player)
 	lamp.Light.Enabled = on and scale > 0
 	lamp.Light.Brightness = HeadlampConfig.Remote.Brightness * scale
-	lamp.Light.Color = tintColor(player)
+	lamp.Light.Color = HeadlampMath.TintColor(tint)
+	if player:GetAttribute(Constants.Attributes.HeadlampTint) ~= tint then
+		player:SetAttribute(Constants.Attributes.HeadlampTint, tint)
+	end
 end
 
 function HeadlampService.Toggle(self: HeadlampService, player: Player)
