@@ -1,0 +1,3 @@
+-- Replaces Roblox's default health-regeneration script. Regeneration is
+-- handled by the server's PlayerService so injuries persist and the regen
+-- delay is configurable (PlayerConfig.Health).
