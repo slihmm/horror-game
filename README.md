@@ -275,6 +275,13 @@ Studio pass on:
   for floor clipping on steep tunnels and chase difficulty (`MonsterConfig`).
 - **Art:** every prop and the creature are built from parts. Drop meshes into
   `ServerStorage.Assets` to replace them.
-- **Not yet built:** crouch/crawl animations (the camera lowers, the body
-  doesn't), and spatial voice chat effects (Roblox proximity voice works as
-  is; reverb via the Audio API would be a nice addition).
+- **Postures:** crouch/rope/climb/squeeze poses are procedural joint offsets
+  (`PostureConfig`); verify the angles on R15 rigs. R6 avatars are left unposed.
+- **Not yet built:** spatial voice chat effects (Roblox proximity voice works
+  as is; reverb via the Audio API would be a nice addition).
+
+## Cloud sessions
+
+`.claude/hooks/session-start.sh` installs rojo, luau-lsp (plus the Roblox
+type definitions) and lune, so `scripts/check.sh` and `scripts/test.sh` work
+in Claude Code cloud sessions.
