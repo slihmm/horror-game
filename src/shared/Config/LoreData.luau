@@ -26,6 +26,8 @@ export type LoreEntry = {
 	Zones: { string }?,
 	-- Only appears in hidden rooms.
 	Hidden: boolean?,
+	-- Prefer a lore slot carrying this tag (see RoomDressers).
+	SlotTag: string?,
 }
 
 local Expeditions = {
@@ -307,6 +309,7 @@ local Entries: { LoreEntry } = {
 		Expedition = Expeditions.Current,
 		Layer = 8,
 		Anchor = "FinalChamber",
+		SlotTag = "NewestCamp",
 		Text = "A new notebook, the kind your expedition bought. The handwriting is yours.\nDay 1. Entrance. Rope still hanging from the last lot.\nDay 1. Shaft. Further than it looked.\nDay 1. Walked the loop twice before I noticed.\nDay 1. The corridor.\nDay 1. The camp is set up like ours.\nThe last line is written over and over, down the whole final page:\nI should not be down here.",
 	},
 	{
