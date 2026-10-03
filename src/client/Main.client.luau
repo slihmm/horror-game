@@ -12,6 +12,7 @@ local ORDER = {
 	"HeadlampController",
 	"LightingController",
 	"FootstepController",
+	"PostureController",
 	"InteractionController",
 	"TraversalController",
 	"CinematicController",

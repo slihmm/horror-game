@@ -157,7 +157,14 @@ function PlayerService.Spawn(self: PlayerService, player: Player)
 	self._spawnIndex += 1
 	local plan = CaveService.Plan
 	if plan then
+		-- Sanctioned move: the speed check may not have seen this character yet.
+		character:SetAttribute("Teleporting", true)
 		character:PivotTo(SurfaceBuilder.SpawnPoint(plan, self._spawnIndex))
+		task.delay(1.5, function()
+			if character.Parent then
+				character:SetAttribute("Teleporting", nil)
+			end
+		end)
 	end
 end
 

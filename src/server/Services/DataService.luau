@@ -43,6 +43,7 @@ type Session = {
 	Saving: boolean,
 	SaveQueued: boolean,
 	Released: boolean,
+	Releasing: boolean,
 	LoadedAt: number,
 }
 
@@ -301,6 +302,8 @@ function DataService._load(self: DataService, player: Player)
 	for attempt = 1, LOAD_ATTEMPTS do
 		local lockedByOther = false
 		local ok, record = self:_update(key, function(current: Record?): Record?
+			-- UpdateAsync may run this more than once; decide afresh each time.
+			lockedByOther = false
 			local now = os.time()
 			if current and current.Lock and current.Lock.JobId ~= self._jobId then
 				local age = now - current.Lock.Time
@@ -348,6 +351,7 @@ function DataService._load(self: DataService, player: Player)
 		Saving = false,
 		SaveQueued = false,
 		Released = false,
+		Releasing = false,
 		LoadedAt = os.clock(),
 	}
 	self._sessions[player] = session
@@ -376,6 +380,7 @@ function DataService.Save(self: DataService, player: Player, release: boolean?):
 	local snapshot = sanitize(session.Profile)
 	local stolen = false
 	local ok = self:_update(self:_key(player), function(current: Record?): Record?
+		stolen = false
 		if current and current.Lock and current.Lock.JobId ~= self._jobId then
 			-- Another server took over (we were assumed dead). Don't clobber.
 			stolen = true
@@ -405,6 +410,14 @@ function DataService._release(self: DataService, player: Player)
 		self._sessions[player] = nil
 		return
 	end
+	if session.Releasing then
+		-- Shutdown and leaving can both release; let the first one finish.
+		while not session.Released do
+			task.wait(0.1)
+		end
+		return
+	end
+	session.Releasing = true
 	self:Save(player, true)
 	session.Released = true
 	self._sessions[player] = nil

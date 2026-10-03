@@ -254,7 +254,10 @@ function ExpeditionService._onZoneChanged(self: ExpeditionService, player: Playe
 	end
 	local wasUnder = old ~= "" and ZoneConfig.Get(old).Underground
 	local isUnder = ZoneConfig.Get(new).Underground
-	if isUnder and run.State == Constants.RunStates.Surface then
+	-- Escaped counts as surfaced too, in case the ending's completion
+	-- message never arrives: the player must always be able to go again.
+	local surfaced = run.State == Constants.RunStates.Surface or run.State == Constants.RunStates.Escaped
+	if isUnder and surfaced then
 		self:_beginRun(player, run)
 	elseif wasUnder and not isUnder and run.State == Constants.RunStates.Underground then
 		local track = CaveService:GetTrack(player)

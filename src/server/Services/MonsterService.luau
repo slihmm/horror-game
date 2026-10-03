@@ -58,7 +58,15 @@ function MonsterService.Start(self: MonsterService)
 		return
 	end
 	local lair = plan.Anchors[CaveLayout.LairAnchor]
-	local home = if lair then (lair.Data.Den or lair.Position) else plan.Graph.Nodes[1].Position
+	local home: Vector3 = if lair then (lair.Data.Den or lair.Position) else plan.Graph.Nodes[1].Position
+	-- The den point is computed, not measured: put its feet on the floor.
+	local floorParams = RaycastParams.new()
+	floorParams.FilterType = Enum.RaycastFilterType.Include
+	floorParams.FilterDescendantsInstances = { Workspace.Terrain }
+	local floorHit = Workspace:Raycast(home + Vector3.yAxis * 6, Vector3.yAxis * -20, floorParams)
+	if floorHit then
+		home = floorHit.Position
+	end
 	local folder = Instance.new("Folder")
 	folder.Name = Constants.Folders.Monster
 	folder.Parent = Workspace:FindFirstChild(Constants.Folders.Cave) or Workspace
