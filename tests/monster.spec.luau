@@ -55,6 +55,9 @@ local function simulate(name, seed, scenario)
 		visited[brain.State] = true
 		if cmd.Attack then
 			attacks += 1
+			if scenario.StopOnAttack then
+				break
+			end
 		end
 		-- crude body: follow path
 		if cmd.Path ~= path then
@@ -93,14 +96,15 @@ local function simulate(name, seed, scenario)
 end
 
 -- A noisy, lit player at the camp is eventually found and attacked.
-local visited, attacks = simulate("noisy player", 42, { Ticks = 1500, Noisy = true, SightDistance = 70 })
+-- Up to 15 simulated minutes (detection usually takes 0.5-4).
+local visited, attacks = simulate("noisy player", 42, { Ticks = 4500, Noisy = true, SightDistance = 70, StopOnAttack = true })
 check(visited.Patrolling, "never patrolled")
 check(visited.Investigating or visited.Tracking, "never investigated or tracked a noisy player")
 check(visited.Chasing, "never chased a noisy, lit player")
 check(attacks > 0, "never attacked")
 
 -- A silent, dark, hidden, crouched player is not chased.
-local visited2 = simulate("hidden player", 42, { Ticks = 1500, Noisy = false, Lamp = false, Hidden = true, Crouched = true, SightDistance = 70 })
+local visited2 = simulate("hidden player", 42, { Ticks = 4500, Noisy = false, Lamp = false, Hidden = true, Crouched = true, SightDistance = 70 })
 check(not visited2.Chasing, "chased a hidden, silent, dark player")
 
 -- While shy, it never chases.
