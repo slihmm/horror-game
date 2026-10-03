@@ -1,0 +1,3 @@
+-- Replaces Roblox's default character sounds. Footsteps, landing, swimming
+-- and breathing are produced by the FootstepController, which reacts to the
+-- surface material, stance and injuries.
