@@ -192,10 +192,19 @@ Types.Collapsed = function(ctx, br)
 		return false
 	end
 	opts.StartNode = nearestNode(br.Nodes, origin.Floor)
-	Primitives.TunnelCommit(ctx, samples, opts)
+	local nodes = Primitives.TunnelCommit(ctx, samples, opts)
 	local last = samples[#samples]
 	local zone = ZoneConfig.Get(br.Zone)
-	Primitives.Ball(ctx.Ops.Detail, last.P + dir * 2, last.R + 2, zone.WallMaterial)
+	local plugCenter = last.P + dir * 2
+	local plugRadius = last.R + 2
+	Primitives.Ball(ctx.Ops.Detail, plugCenter, plugRadius, zone.WallMaterial)
+	-- The rubble buries the tunnel's end: stop the graph in front of it.
+	for k = #samples, 1, -1 do
+		if (samples[k].P - plugCenter).Magnitude > plugRadius + 3 then
+			nodes[#nodes].Position = samples[k].Floor
+			break
+		end
+	end
 	Primitives.AddFeature(ctx, {
 		Kind = "Collapse",
 		Position = last.Floor - dir * (last.R * 0.6),

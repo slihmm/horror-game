@@ -24,6 +24,7 @@ local TerrainBuilder = require(Cave.TerrainBuilder)
 local SurfaceBuilder = require(Cave.SurfaceBuilder)
 local Dress = require(Cave.DressContext)
 local Populator = require(Cave.Populator)
+local NodeRefiner = require(Cave.NodeRefiner)
 
 type Node = CaveGraph.Node
 type Anchor = Primitives.Anchor
@@ -159,24 +160,8 @@ function CaveService.WaitUntilReady(self: CaveService)
 	end
 end
 
--- Snaps node positions onto the real terrain floor so the monster walks on
--- the ground, not on the analytic floor estimate.
 function CaveService._refineNodes(self: CaveService)
-	local plan = self.Plan :: Primitives.Context
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Include
-	params.FilterDescendantsInstances = { Workspace.Terrain }
-	params.IgnoreWater = true
-	for i, node in plan.Graph.Nodes do
-		local result = Workspace:Raycast(node.Position + Vector3.yAxis * 4, Vector3.yAxis * -14, params)
-		if result then
-			node.Position = result.Position
-		end
-		if i % 200 == 0 then
-			task.wait()
-		end
-	end
-	plan.Graph:Rehash()
+	NodeRefiner.Refine((self.Plan :: Primitives.Context).Graph, 200)
 end
 
 -- Queries -----------------------------------------------------------------------

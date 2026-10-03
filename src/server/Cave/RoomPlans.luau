@@ -122,7 +122,6 @@ end
 
 RoomPlans.Cistern = function(ctx, anchor)
 	chamber(ctx, anchor)
-	local rng = ctx.Rng
 	local zone = ZoneConfig.Get(anchor.Zone)
 	-- Central pool.
 	local poolRadius = anchor.Radius * 0.42
@@ -136,16 +135,16 @@ RoomPlans.Cistern = function(ctx, anchor)
 		Enum.Material.Water
 	)
 	anchor.Data.Pool = { Center = anchor.Position, Radius = poolRadius }
-	-- Flowstone pillars around it (kept outside the node ring at 0.55R).
-	local pillars = {}
-	for i = 1, 4 do
-		local angle = (i / 4) * math.pi * 2 + rng:NextNumber(-0.3, 0.3)
-		local p = anchor.Position + Vector3.new(math.cos(angle), 0, math.sin(angle)) * anchor.Radius * rng:NextNumber(0.78, 0.86)
-		local height = anchor.Height * (1 + FF) + 4
-		Primitives.Cylinder(ctx.Ops.Detail, CFrame.new(p + UP * height / 2), height, rng:NextNumber(2.2, 3.6), zone.AccentMaterial)
-		table.insert(pillars, p)
-	end
-	anchor.Data.Pillars = pillars
+	-- Flowstone pillars around it (outside the node ring at 0.55R). Placed
+	-- after the tunnels exist so none lands across a doorway.
+	anchor.Data.PendingColumns = {
+		Key = "Pillars",
+		Count = 4,
+		Distance = NumberRange.new(0.78, 0.86),
+		Radius = NumberRange.new(2.2, 3.6),
+		Height = anchor.Height * (1 + FF) + 4,
+		Material = zone.AccentMaterial,
+	}
 end
 
 -- The loop: a ring tunnel. The way on is sealed until someone has walked
@@ -290,15 +289,14 @@ RoomPlans.FinalChamber = function(ctx, anchor)
 	-- A low mound in the middle where the structure stands.
 	Primitives.Ball(ctx.Ops.Detail, anchor.Position - UP * 14, 22, zone.FloorMaterial)
 	-- Ring of tall natural columns, between the two node rings (0.4R/0.75R).
-	local columns = {}
-	for i = 1, 7 do
-		local angle = (i / 7) * math.pi * 2 + ctx.Rng:NextNumber(-0.2, 0.2)
-		local p = anchor.Position + Vector3.new(math.cos(angle), 0, math.sin(angle)) * anchor.Radius * 0.58
-		local height = anchor.Height * 1.8
-		Primitives.Cylinder(ctx.Ops.Detail, CFrame.new(p + UP * height / 2), height, ctx.Rng:NextNumber(4, 7), zone.WallMaterial)
-		table.insert(columns, p)
-	end
-	anchor.Data.Columns = columns
+	anchor.Data.PendingColumns = {
+		Key = "Columns",
+		Count = 7,
+		Distance = NumberRange.new(0.56, 0.6),
+		Radius = NumberRange.new(4, 7),
+		Height = anchor.Height * 1.8,
+		Material = zone.WallMaterial,
+	}
 end
 
 return RoomPlans

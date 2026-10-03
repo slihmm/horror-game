@@ -40,6 +40,10 @@ export type Ops = {
 	Shell: { Op },
 	Carve: { Op },
 	Floor: { Op },
+	-- Re-opens headroom along tunnel centerlines after floors are laid, so
+	-- one space's floor never plugs another passage (e.g. a tunnel descending
+	-- out of a chamber through the chamber's floor).
+	Clear: { Op },
 	Detail: { Op },
 	Late: { Op },
 	Water: { Op },
@@ -126,7 +130,7 @@ function Primitives.NewContext(seed: number): Context
 		Seed = seed,
 		Rng = Random.new(seed),
 		Graph = CaveGraph.new(),
-		Ops = { Shell = {}, Carve = {}, Floor = {}, Detail = {}, Late = {}, Water = {} },
+		Ops = { Shell = {}, Carve = {}, Floor = {}, Clear = {}, Detail = {}, Late = {}, Water = {} },
 		Features = {},
 		Traversals = {},
 		Anchors = {},
@@ -281,6 +285,10 @@ function Primitives.TunnelCommit(ctx: Context, samples: { Sample }, opts: Tunnel
 		Primitives.Ball(carveList, s.P, s.R, Enum.Material.Air)
 		if i % 2 == 1 or i == count then
 			Primitives.Ball(ctx.Ops.Shell, s.P, s.R + SHELL, wall)
+			if not opts.Late and not opts.NoFloor then
+				-- Headroom core: bottom stays above this tunnel's own floor.
+				Primitives.Ball(ctx.Ops.Clear, s.P + UP * s.R * 0.15, s.R * 0.55, Enum.Material.Air)
+			end
 		end
 		if not opts.NoFloor then
 			local nextP = samples[math.min(i + 1, count)].P

@@ -19,7 +19,6 @@ local Constants = require(Shared.Constants)
 local Net = require(Shared.Net)
 local LoreData = require(Shared.Config.LoreData)
 local PlayerConfig = require(Shared.Config.PlayerConfig)
-local Weighted = require(Shared.Utility.Weighted)
 
 local Services = ServerScriptService.Server.Services
 local CaveService = require(Services.CaveService)
@@ -28,6 +27,7 @@ local NoiseService = require(Services.NoiseService)
 local Cave = ServerScriptService.Server.Cave
 local PropFactory = require(Cave.PropFactory)
 local Dress = require(Cave.DressContext)
+local LorePlacement = require(Cave.LorePlacement)
 
 type LoreEntry = LoreData.LoreEntry
 type LoreSlot = Dress.LoreSlot
@@ -66,87 +66,14 @@ function LoreService.Start(self: LoreService)
 end
 
 function LoreService._placeAll(self: LoreService, slots: { LoreSlot })
-	local remaining: { LoreEntry } = table.clone(LoreData.Entries)
-	local function take(entry: LoreEntry, slot: LoreSlot)
-		slot.Used = true
-		self:_spawn(entry, slot)
-		local index = table.find(remaining, entry)
-		if index then
-			table.remove(remaining, index)
-		end
+	local placements, warnings = LorePlacement.Assign(LoreData.Entries, slots, self._rng)
+	for _, placement in placements do
+		self:_spawn(placement.Entry, placement.Slot)
 	end
-	local function firstSlot(predicate: (LoreSlot) -> boolean): LoreSlot?
-		for _, slot in slots do
-			if not slot.Used and predicate(slot) then
-				return slot
-			end
-		end
-		return nil
+	for _, message in warnings do
+		warn("[Lore] " .. message)
 	end
-
-	-- 1. Tagged slots.
-	for _, entry in table.clone(remaining) do
-		if entry.SlotTag then
-			local slot = firstSlot(function(s)
-				return s.Tag == entry.SlotTag
-			end)
-			if slot then
-				take(entry, slot)
-			end
-		end
-	end
-	-- 2. Anchored entries (untagged slots of the same anchor first).
-	for _, entry in table.clone(remaining) do
-		local anchor = entry.Anchor
-		if anchor then
-			local slot = firstSlot(function(s)
-				return s.Anchor == anchor and s.Tag == nil
-			end) or firstSlot(function(s)
-				return s.Anchor == anchor
-			end)
-			if slot then
-				take(entry, slot)
-			else
-				warn(`[Lore] No slot left at {anchor} for '{entry.Id}'`)
-			end
-		end
-	end
-	-- 3. Hidden entries into hidden rooms (prefer a matching zone).
-	for _, entry in table.clone(remaining) do
-		if entry.Hidden then
-			local zones = entry.Zones or {}
-			local slot = firstSlot(function(s)
-				return s.Hidden and table.find(zones, s.Zone) ~= nil
-			end) or firstSlot(function(s)
-				return s.Hidden
-			end)
-			if slot then
-				take(entry, slot)
-			end
-		end
-	end
-	-- 4. The pool, shuffled so different runs reveal different pieces first.
-	local pool = {}
-	for _, entry in remaining do
-		if not entry.Anchor and not entry.Hidden then
-			table.insert(pool, entry)
-		end
-	end
-	Weighted.shuffle(pool, self._rng)
-	for _, entry in pool do
-		local zones = entry.Zones or {}
-		local slot = firstSlot(function(s)
-			return s.Anchor == nil and table.find(zones, s.Zone) ~= nil
-		end)
-		if slot then
-			take(entry, slot)
-		end
-	end
-	local placed = 0
-	for _ in self.Placed do
-		placed += 1
-	end
-	print(`[Lore] placed {placed}/{#LoreData.Entries} entries`)
+	print(`[Lore] placed {#placements}/{#LoreData.Entries} entries`)
 end
 
 function LoreService._spawn(self: LoreService, entry: LoreEntry, slot: LoreSlot)

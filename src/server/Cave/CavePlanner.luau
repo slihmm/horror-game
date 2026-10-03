@@ -110,6 +110,38 @@ local function planTunnelEdge(ctx: Context, edge: any, from: Anchor, to: Anchor)
 	end
 end
 
+-- Places deferred columns once every tunnel is known, keeping them clear of
+-- passages that enter the room. Results go to anchor.Data[Key].
+local function placeColumns(ctx: Context)
+	local rng = ctx.Rng
+	for _, anchor in ctx.Anchors do
+		local pending = anchor.Data.PendingColumns
+		if not pending then
+			continue
+		end
+		local placed = {}
+		local ignore = { [anchor.Group] = true }
+		for i = 1, pending.Count do
+			for _attempt = 1, 8 do
+				local angle = (i / pending.Count) * math.pi * 2 + rng:NextNumber(-0.45, 0.45)
+				local distance = anchor.Radius * rng:NextNumber(pending.Distance.Min, pending.Distance.Max)
+				local p = anchor.Position + Vector3.new(math.cos(angle), 0, math.sin(angle)) * distance
+				local radius = rng:NextNumber(pending.Radius.Min, pending.Radius.Max)
+				local probes: { Primitives.Sample } = {
+					{ P = p + Vector3.yAxis * 4, R = radius, Floor = p },
+					{ P = p + Vector3.yAxis * 12, R = radius, Floor = p },
+				}
+				if Primitives.IsClear(ctx, probes, ignore, 3) then
+					Primitives.Cylinder(ctx.Ops.Detail, CFrame.new(p + Vector3.yAxis * pending.Height / 2), pending.Height, radius, pending.Material)
+					table.insert(placed, p)
+					break
+				end
+			end
+		end
+		anchor.Data[pending.Key] = placed
+	end
+end
+
 function CavePlanner.Plan(seed: number): Context
 	local ctx = Primitives.NewContext(seed)
 	resolveAnchors(ctx)
@@ -153,6 +185,7 @@ function CavePlanner.Plan(seed: number): Context
 	CaveBranches.GrowHidden(ctx)
 	CaveBranches.Grow(ctx)
 	CaveBranches.Decorate(ctx)
+	placeColumns(ctx)
 
 	local entrance = ctx.Anchors[CaveLayout.EntranceAnchor]
 	ctx.Graph:ComputeDistances(entrance.Node :: any)

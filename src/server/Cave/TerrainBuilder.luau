@@ -33,7 +33,7 @@ local function fillWater(terrain: Terrain, op: Op)
 	end
 end
 
-local ORDER = { "Shell", "Carve", "Floor", "Detail", "Late" }
+local ORDER = { "Shell", "Carve", "Floor", "Clear", "Detail", "Late" }
 
 -- onProgress(stageName, fraction) is optional.
 function TerrainBuilder.Build(ops: Ops, onProgress: ((string, number) -> ())?)

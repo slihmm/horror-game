@@ -314,10 +314,13 @@ RoomDressers.ExplorerCamp = function(ctx, anchor)
 			Dress.AddLootSpot(ctx, q, anchor.Zone, false)
 		end
 	end
-	-- An extra random lore slot for pooled camp entries.
-	local r = Dress.RandomFloor(ctx, anchor.Position, anchor.Radius * 0.7)
-	if r then
-		Dress.AddLoreSlot(ctx, r, anchor.Zone, nil, false)
+	-- Free slots for the scattered camp entries (the camp has no tunnels of
+	-- its own for the populator to top up along).
+	for _ = 1, 3 do
+		local r = Dress.RandomFloor(ctx, anchor.Position, anchor.Radius * 0.75)
+		if r then
+			Dress.AddLoreSlot(ctx, r, anchor.Zone, nil, false)
+		end
 	end
 end
 
@@ -424,7 +427,7 @@ RoomDressers.FinalChamber = function(ctx, anchor)
 		end
 	end
 	Dress.Place(ctx, "Altar", CFrame.new(mound) * Dress.Yaw(ctx), nil, folder)
-	Dress.AddLoreSlot(ctx, mound + Vector3.new(0, 4.1, 0), anchor.Zone, anchor.Id, false)
+	Dress.AddLoreSlot(ctx, mound + Vector3.new(0, 4.1, 0), anchor.Zone, anchor.Id, false, nil, nil, true)
 
 	-- Camps from every era, arranged in a ring facing the stones.
 	local campColors = {

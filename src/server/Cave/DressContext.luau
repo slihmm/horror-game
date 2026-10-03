@@ -21,6 +21,7 @@ export type LoreSlot = {
 	Used: boolean,
 	-- Lore entries with a matching SlotTag are placed here first.
 	Tag: string?,
+	OnProp: boolean,
 }
 
 export type LootSpot = {
@@ -228,7 +229,12 @@ end
 
 -- Slots --------------------------------------------------------------------------
 
-function Dress.AddLoreSlot(ctx: DressContext, floor: Vector3, zone: string, anchor: string?, hidden: boolean?, facing: Vector3?, tag: string?)
+-- `onProp` marks slots resting on a prop (table, altar) rather than terrain.
+function Dress.AddLoreSlot(ctx: DressContext, floor: Vector3, zone: string, anchor: string?, hidden: boolean?, facing: Vector3?, tag: string?, onProp: boolean?)
+	if not onProp then
+		-- Callers often offset from a measured point; measure again here.
+		floor = Dress.FloorAt(ctx, floor + Vector3.yAxis * 2, 3, 10) or floor
+	end
 	local cf = if facing then Dress.Facing(floor, floor + facing) else CFrame.new(floor) * Dress.Yaw(ctx)
 	local wallHit, wallNormal = Dress.NearestWall(ctx, floor + Vector3.yAxis * 3.5, 18)
 	table.insert(ctx.Results.LoreSlots, {
@@ -239,6 +245,7 @@ function Dress.AddLoreSlot(ctx: DressContext, floor: Vector3, zone: string, anch
 		Hidden = hidden == true,
 		Used = false,
 		Tag = tag,
+		OnProp = onProp == true,
 	})
 end
 

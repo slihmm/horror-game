@@ -233,7 +233,7 @@ function SurfaceBuilder.Dress(ctx: DressContext)
 		end
 	end
 	Dress.Place(ctx, "Lantern", tableTop.CFrame * CFrame.new(2, 0.15, 0), { Lit = true, Fallen = false, Range = 22, Brightness = 1 }, campFolder)
-	Dress.AddLoreSlot(ctx, tablePos + UP * 2.76, "Surface", "SurfaceCamp", false)
+	Dress.AddLoreSlot(ctx, tablePos + UP * 2.76, "Surface", "SurfaceCamp", false, nil, nil, true)
 
 	-- Expedition logbook board (LeaderboardService fills its SurfaceGui).
 	local boardPos = at(-10, -8)

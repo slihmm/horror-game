@@ -62,6 +62,11 @@ the pure logic:
 - **planner**: five seeds. Every story location must be reachable, progress
   must increase along the story, the monster must be able to walk from its
   lair to the final chamber, and the corridor must stay voxel-aligned.
+- **dressing**: five seeds built into an emulated terrain (`tests/WorldSim`
+  records every terrain write and answers raycasts), then dressed by the real
+  surface builder, populator and room dressers. All 31 lore entries must
+  land (story beats in their rooms, your journal in the newest camp), lore
+  and loot must rest on floors, and navigation nodes must be in open air.
 - **monster**: simulated encounters. A noisy, lit player is tracked, chased
   and attacked. A silent, dark, hidden player is not. A shy early monster
   never chases.

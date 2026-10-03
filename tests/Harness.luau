@@ -42,14 +42,22 @@ function RandomClass:NextInteger(min, max)
 	return math.floor(min + (max - min + 1) * self:_next())
 end
 
-function Harness.load(placePath)
+-- opts.Setup(game) may return { Services = {...}, Globals = {...} } to stub
+-- engine services and add globals (see WorldSim).
+function Harness.load(placePath, opts)
 	local game = roblox.deserializePlace(fs.readFile(placePath))
+	local extra = if opts and opts.Setup then opts.Setup(game) else {}
+	local serviceOverrides = extra.Services or {}
+	local extraGlobals = extra.Globals or {}
 	roblox.implementMethod("Instance", "WaitForChild", function(self, name)
 		local child = self:FindFirstChild(name)
 		assert(child, `WaitForChild: {self:GetFullName()} has no child '{name}'`)
 		return child
 	end)
 	roblox.implementMethod("DataModel", "GetService", function(self, name)
+		if serviceOverrides[name] then
+			return serviceOverrides[name]
+		end
 		local service = self:FindFirstChildOfClass(name)
 		if service then
 			return service
@@ -57,6 +65,23 @@ function Harness.load(placePath)
 		error(`Service '{name}' is not available in the offline harness`)
 	end)
 
+	-- Lune implements GetService natively, so overrides go through a proxy.
+	local gameProxy = setmetatable({}, {
+		__index = function(_, key)
+			if key == "GetService" then
+				return function(_, name)
+					return serviceOverrides[name] or game:GetService(name)
+				end
+			end
+			local value = game[key]
+			if type(value) == "function" then
+				return function(_, ...)
+					return value(game, ...)
+				end
+			end
+			return value
+		end,
+	})
 	local cache = {}
 	local function requireModule(module)
 		if cache[module] ~= nil then
@@ -66,7 +91,7 @@ function Harness.load(placePath)
 		local source = module.Source
 		-- Lune copies the environment table, so globals are populated eagerly.
 		local env = {
-			game = game,
+			game = gameProxy,
 			workspace = game:FindFirstChildOfClass("Workspace"),
 			script = module,
 			require = requireModule,
@@ -77,6 +102,9 @@ function Harness.load(placePath)
 			if env[key] == nil then
 				env[key] = value
 			end
+		end
+		for key, value in extraGlobals do
+			env[key] = value
 		end
 		local fn = luau.load(source, { debugName = module:GetFullName(), environment = env })
 		local result = fn()

@@ -12,6 +12,7 @@ local CaveConfig = require(Shared.Config.CaveConfig)
 local ZoneConfig = require(Shared.Config.ZoneConfig)
 local Dress = require(script.Parent.DressContext)
 local PropFactory = require(script.Parent.PropFactory)
+local LoreData = require(Shared.Config.LoreData)
 local RoomDressers = require(script.Parent.RoomDressers)
 local Primitives = require(script.Parent.CavePrimitives)
 
@@ -27,6 +28,13 @@ local Populator = {}
 local Contents: { [string]: (DressContext, Feature, Folder) -> () } = {}
 
 Contents.Empty = function(ctx, f, folder)
+	-- Sometimes an empty room has a page lying in it, and nothing else.
+	if ctx.Rng:NextNumber() < 0.3 then
+		local p = Dress.RandomFloor(ctx, f.Center, f.Radius * 0.6)
+		if p then
+			Dress.AddLoreSlot(ctx, p, f.Zone, nil, false)
+		end
+	end
 	if ctx.Rng:NextNumber() < 0.5 then
 		local p = Dress.RandomFloor(ctx, f.Center, f.Radius * 0.7)
 		if p then
@@ -299,6 +307,10 @@ Features.DeadEnd = function(ctx, f)
 	end
 	local folder = Dress.Folder(ctx, "DeadEnd")
 	local dir = f.Direction :: Vector3
+	-- Someone came this far, stopped, and left something behind.
+	if ctx.Rng:NextNumber() < 0.4 then
+		Dress.AddLoreSlot(ctx, floor - dir * 2.5, f.Zone, nil, false)
+	end
 	local roll = rng:NextInteger(1, 5)
 	if roll == 1 then
 		Dress.Place(ctx, "Boot", CFrame.new(floor), nil, folder)
@@ -585,6 +597,58 @@ Features.TunnelDecor = decorateTunnel
 
 -- Entry --------------------------------------------------------------------------
 
+-- Scattered lore needs somewhere to land in every zone it belongs to. Top
+-- each zone up to the number of entries that want it, with a dropped page or
+-- device somewhere along that zone's tunnels.
+local function ensureLoreSlots(ctx: DressContext)
+	local wanted: { [string]: number } = {}
+	for _, entry in LoreData.Entries do
+		if not entry.Anchor and not entry.SlotTag and entry.Zones then
+			-- Count each entry fully in every zone it may use: slots are
+			-- cheap, and a shared entry must never starve a zone.
+			for _, zone in entry.Zones do
+				wanted[zone] = (wanted[zone] or 0) + 1
+			end
+		end
+	end
+	local have: { [string]: number } = {}
+	for _, slot in ctx.Results.LoreSlots do
+		if not slot.Anchor then
+			have[slot.Zone] = (have[slot.Zone] or 0) + 1
+		end
+	end
+	local tunnels: { [string]: { { Samples: { Primitives.Sample } } } } = {}
+	for _, f in ctx.Plan.Features do
+		if f.Kind == "TunnelDecor" then
+			tunnels[f.Zone] = tunnels[f.Zone] or {}
+			table.insert(tunnels[f.Zone], { Samples = f.Samples })
+		end
+	end
+	local rng = ctx.Rng
+	for zone, amount in wanted do
+		local options = tunnels[zone]
+		-- One spare: hidden entries fall back to ordinary slots when no
+		-- hidden room in their zone took lore this run.
+		local deficit = math.ceil(amount) + 1 - (have[zone] or 0)
+		local attempts = 0
+		while options and deficit > 0 and attempts < 40 do
+			attempts += 1
+			local tunnel = options[rng:NextInteger(1, #options)]
+			local samples = tunnel.Samples
+			if #samples > 10 then
+				local sample = samples[rng:NextInteger(5, #samples - 5)]
+				local angle = rng:NextNumber(0, math.pi * 2)
+				local p = sample.Floor + Vector3.new(math.cos(angle), 0, math.sin(angle)) * sample.R * 0.5
+				local floor = Dress.FloorAt(ctx, p + UP * 3, 4, 10)
+				if floor then
+					Dress.AddLoreSlot(ctx, floor, zone, nil, false)
+					deficit -= 1
+				end
+			end
+		end
+	end
+end
+
 function Populator.Run(ctx: DressContext)
 	local plan = ctx.Plan
 	local count = 0
@@ -606,6 +670,7 @@ function Populator.Run(ctx: DressContext)
 			task.wait()
 		end
 	end
+	ensureLoreSlots(ctx)
 end
 
 return Populator
