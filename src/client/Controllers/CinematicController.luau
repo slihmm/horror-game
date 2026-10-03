@@ -79,6 +79,20 @@ local function formatTime(seconds: number): string
 end
 
 function CinematicController.Start(self: CinematicController)
+	-- Safety net: if no cinematic arrives after a spawn, never leave the
+	-- player staring at a black screen.
+	local function onCharacter()
+		local token = self._token
+		task.delay(12, function()
+			if self._token == token and not self.Playing then
+				UIController:Fade(0, 3)
+			end
+		end)
+	end
+	LocalPlayer.CharacterAdded:Connect(onCharacter)
+	if LocalPlayer.Character then
+		onCharacter()
+	end
 	Net.Event("Cinematic").OnClientEvent:Connect(function(cinematicId: string, params: any)
 		self._token += 1
 		local token = self._token

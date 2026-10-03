@@ -120,10 +120,10 @@ function HeadlampService._attach(self: HeadlampService, player: Player, characte
 	light.Color = HeadlampMath.TintColor(tintName(player))
 	light.Parent = attachment
 	light:AddTag(Constants.Tags.Headlamp)
-	-- Keep the lamp state across deaths: a new life does not get a new battery.
-	if player:GetAttribute(Constants.Attributes.Battery) == nil then
-		player:SetAttribute(Constants.Attributes.Battery, HeadlampConfig.Battery.StartCharge)
-	end
+	-- Every spawn is at camp, where there are spare cells: top up to the
+	-- starting charge (never down).
+	local battery = (player:GetAttribute(Constants.Attributes.Battery) :: number?) or 0
+	player:SetAttribute(Constants.Attributes.Battery, math.max(battery, HeadlampConfig.Battery.StartCharge))
 	if player:GetAttribute(Constants.Attributes.HeadlampOn) == nil then
 		player:SetAttribute(Constants.Attributes.HeadlampOn, true)
 	end

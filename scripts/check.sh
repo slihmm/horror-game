@@ -12,6 +12,7 @@ if [ ! -f "$DEFS" ]; then
   curl -sSL -o "$DEFS" https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/main/scripts/globalTypes.d.luau
 fi
 "$ROJO" sourcemap default.project.json --output sourcemap.json
+mkdir -p build
 "$ROJO" build default.project.json --output build/Descent.rbxlx
 "$LUAU_LSP" analyze --sourcemap=sourcemap.json --definitions="$DEFS" --flag:LuauSolverV2=false src
 echo "check passed"

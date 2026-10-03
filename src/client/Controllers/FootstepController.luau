@@ -111,11 +111,14 @@ function FootstepController._update(self: FootstepController)
 			walker.Travelled = 0
 			continue
 		end
+		-- Humanoid states of other players don't replicate reliably, so for
+		-- them grounding is decided by the floor raycast at step time.
 		local state = humanoid:GetState()
-		local grounded = state == Enum.HumanoidStateType.Running
+		local grounded = not isLocal
+			or state == Enum.HumanoidStateType.Running
 			or state == Enum.HumanoidStateType.RunningNoPhysics
 			or state == Enum.HumanoidStateType.Swimming
-		if not grounded then
+		if not grounded or math.abs(delta.Y) > 3 then
 			continue
 		end
 		walker.Travelled += flat

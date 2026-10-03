@@ -121,8 +121,9 @@ local function boundary(parent: Instance, center: Vector3, radius: number, segme
 		wall.Transparency = 1
 		wall.CanQuery = false
 		wall.CastShadow = false
-		wall.Size = Vector3.new(2 * math.pi * radius / segments + 4, 400, 4)
-		wall.CFrame = CFrame.new(center + Vector3.new(math.cos(angle), 0, math.sin(angle)) * radius + UP * 100) * CFrame.Angles(0, -angle + math.pi / 2, 0)
+		-- Above ground only: the cave runs underneath these boundaries.
+		wall.Size = Vector3.new(2 * math.pi * radius / segments + 4, 306, 4)
+		wall.CFrame = CFrame.new(center + Vector3.new(math.cos(angle), 0, math.sin(angle)) * radius + UP * 147) * CFrame.Angles(0, -angle + math.pi / 2, 0)
 		wall.Parent = parent
 	end
 end

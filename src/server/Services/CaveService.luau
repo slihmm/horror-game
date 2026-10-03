@@ -3,7 +3,6 @@
 -- which zone a player is in, how deep, how far along the cave, which story
 -- anchor or hidden room they have just entered.
 
-local CollectionService = game:GetService("CollectionService")
 local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -339,9 +338,6 @@ function CaveService.RandomNodeAround(self: CaveService, position: Vector3, minD
 	return candidates[rng:NextInteger(1, #candidates)]
 end
 
-function CaveService.TagAll(self: CaveService, tag: string): { Instance }
-	return CollectionService:GetTagged(tag)
-end
 
 
 local instance: CaveService = setmetatable({

@@ -9,7 +9,6 @@ local Net = {}
 
 local DEFINITIONS: { [string]: "RemoteEvent" | "UnreliableRemoteEvent" } = {
 	-- client -> server
-	ClientReady = "RemoteEvent", -- ()
 	LookPitch = "UnreliableRemoteEvent", -- (pitch: number)
 	SetStance = "RemoteEvent", -- (stance: string)
 	ToggleHeadlamp = "RemoteEvent", -- ()
